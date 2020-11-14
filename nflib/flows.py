@@ -291,4 +291,4 @@ class NormalizingFlowModel(nn.Module):
     def sample(self, num_samples):
         z = self.prior.sample((num_samples,))
         xs, _ = self.flow.backward(z)
-        return xs
+        return xs, z
