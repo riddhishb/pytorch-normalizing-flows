@@ -63,13 +63,23 @@ def plot_in_loop(x, title = ''):
         
 def splom(z,dim2show = 5):
     k=0
-    zdim = int(np.prod(z.shape[1:]))
-    show_dim = np.random.randint(zdim, size=dim2show)
-    for i in show_dim:
-        for j in show_dim:
+    if type(dim2show) is list:
+        show_dim = dim2show
+        dim2show = len(show_dim)
+    else:
+        zdim = int(np.prod(z.shape[1:]))
+        show_dim = np.random.randint(zdim, size=dim2show)
+    print(show_dim)    
+    for ii,i in enumerate(show_dim):
+        for jj,j in enumerate(show_dim):
             k = k +1
             plt.subplot(dim2show,dim2show,k)
             plt.scatter(z[:,i], z[:,j])
+            if ii == len(show_dim)-1:
+                plt.xlabel('dim-' + str(j))# + ' k='+str(k))
+            if jj == 0:
+                plt.ylabel('dim-' + str(i))# + ' k='+str(k))
+            
             
 
 #%%
@@ -78,14 +88,15 @@ config = dict()
 
 config["data_step"]   = 2   # 10
 config["nf_type"]     = 'maf' #'realnvp'
-config["num_blocks"]  = 4 #4
-config["num_hidden"]  = 128 #64 #24 
+config["num_blocks"]  = 8 #4
+config["num_hidden"]  = 64 #128 #64 #24 
          
 config["use_scheduler"]  = False
 config["num_epoches"]    = 5000 
 config["batch_size"]     = 100
 config["learning_rate"]  = 1e-5 #1e-4 #1e-6 #1e-4
 config["weight_decay"]   = 1e-5
+config["prior_type"]     = "gauss" #"stdnorm"
 
 #hidden_factor = 2 #4 #0.25 #2 #2,4
 #num_hidden = int(xdim * hidden_factor) #*4 #2 #*4
@@ -105,12 +116,17 @@ scatter_in_loop(x, title='x')
 xdim = int(np.prod(data.xdim))
 
 # construct a model
-prior_mean = torch.zeros(xdim) 
-prior_cov  = torch.eye(xdim)
+if config["prior_type"] == "stdnorm":
+    prior_mean = torch.zeros(xdim) 
+    prior_cov  = torch.eye(xdim)
+    dim2show   = 5
 
-#prior_cov  = 0.001 * torch.eye(xdim)
-#prior_cov[0,0] = 1
-#prior_cov[1,1] = 0.5 
+if config["prior_type"] == "gauss":
+    prior_mean = torch.zeros(xdim) 
+    prior_cov  = 0.01 * torch.eye(xdim)
+    prior_cov[0,0] = 1
+    prior_cov[1,1] = 0.5 
+    dim2show       = [1, 2, 3, 4]
 
 prior = MultivariateNormal(prior_mean, prior_cov)
 #prior = TransformedDistribution(Uniform(torch.zeros(xdim), torch.ones()), SigmoidTransform().inv) # Logistic distribution
@@ -198,7 +214,7 @@ for k in range(num_iterations):
     log_det_store.append(torch.sum(log_det).item())
 
     if k % 100 == 0:
-        print("iter #%d of %d" % (k,num_iterations), loss.item(), ', prior_logprob = ', prior_logprob_store[-1], ', log_det = ', log_det_store[-1], ', lr = ', lrs[-1])
+        print("iter #%d of %d" % (k,num_iterations), 'loss = ', loss.item(), ', prior_logprob = ', prior_logprob_store[-1], ', log_det = ', log_det_store[-1], ', lr = ', lrs[-1])
 
 plt.plot(loss_store)
 plt.title('loss')
@@ -231,7 +247,7 @@ z = z.reshape(-1, data.xdim[0], data.xdim[1])
 x = x.detach().numpy()
 z = z.detach().numpy()
 
-splom(z.reshape(-1, xdim),dim2show = 5)
+splom(z.reshape(-1, xdim),dim2show = dim2show)
 
 #scatter_in_loop(x[0:n2show], title='x')
 #scatter_in_loop(z[0:n2show], title='z')
@@ -248,7 +264,7 @@ z = z.detach().numpy()
 x = x.reshape(-1, data.xdim[0], data.xdim[1])
 z = z.reshape(-1, data.xdim[0], data.xdim[1])
 
-splom(z.reshape(-1, xdim),dim2show = 5)
+splom(z.reshape(-1, xdim),dim2show = dim2show)
 
 #scatter_in_loop(z[0:n2show], title='z')
 #scatter_in_loop(x[0:n2show], title='x')
